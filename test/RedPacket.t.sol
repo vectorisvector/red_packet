@@ -2,12 +2,13 @@
 pragma solidity ^0.8.19;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {RedPacket} from "../src/RedPacket.sol";
+import {RedPacketImpl} from "../src/RedPacketImpl.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 import {MockERC721} from "./mocks/MockERC721.sol";
+import {RedPacketProxy} from "../src/RedPacketProxy.sol";
 
 contract RedPacketTest is Test {
-    RedPacket public redPacket;
+    RedPacketProxy public redPacketProxy;
     MockERC20 public mockERC20;
     MockERC721 public mockERC721;
 
@@ -15,8 +16,16 @@ contract RedPacketTest is Test {
     address public bob = makeAddr("bob");
     address public carol = makeAddr("carol");
 
+    RedPacketImpl public redPacketImpl;
+    RedPacketImpl public redPacket;
+
     function setUp() public {
-        redPacket = new RedPacket();
+        redPacketImpl = new RedPacketImpl();
+        redPacketProxy = new RedPacketProxy(
+            address(redPacketImpl),
+            abi.encodeWithSelector(RedPacketImpl.initialize.selector, alice)
+        );
+        redPacket = RedPacketImpl(address(redPacketProxy));
         mockERC20 = new MockERC20();
         mockERC721 = new MockERC721();
 
@@ -42,9 +51,9 @@ contract RedPacketTest is Test {
         vm.startPrank(alice);
         uint256 amount = 1 ether;
         bytes32 packetId = redPacket.createETHPacket{value: amount}(
-            2, // count
+            2,
             block.timestamp + 1 hours,
-            false, // 非随机
+            false,
             "ipfs://example"
         );
         vm.stopPrank();
@@ -557,7 +566,9 @@ contract RedPacketTest is Test {
         vm.stopPrank();
 
         // 获取红包信息
-        RedPacket.PacketView memory info = redPacket.getPacketInfo(packetId);
+        RedPacketImpl.PacketView memory info = redPacket.getPacketInfo(
+            packetId
+        );
 
         // 验证红包信息
         assertEq(info.packetId, packetId);
@@ -570,7 +581,7 @@ contract RedPacketTest is Test {
         assertTrue(info.isRandom);
         assertEq(info.coverURI, "ipfs://example");
         assertEq(info.token, address(0));
-        assertEq(uint8(info.packetType), uint8(RedPacket.PacketType.ETH));
+        assertEq(uint8(info.packetType), uint8(RedPacketImpl.PacketType.ETH));
         assertEq(info.nftIds.length, 0);
 
         // Bob 领取红包
@@ -629,6 +640,9 @@ contract RedPacketTest is Test {
     }
 
     function testPacketRange() public {
+        // 使用 alice（管理员）账户调用
+        vm.startPrank(alice);
+
         // 测试设置无效范围
         vm.expectRevert("Invalid min percentage");
         redPacket.setPacketRange(0, 150);
@@ -698,7 +712,7 @@ contract RedPacketTest is Test {
         );
 
         // 批量查询红包信息
-        RedPacket.PacketView[] memory packets = redPacket.getPacketsInfo(
+        RedPacketImpl.PacketView[] memory packets = redPacket.getPacketsInfo(
             packetIds
         );
 
@@ -718,7 +732,7 @@ contract RedPacketTest is Test {
             assertEq(packets[i].token, address(0));
             assertEq(
                 uint8(packets[i].packetType),
-                uint8(RedPacket.PacketType.ETH)
+                uint8(RedPacketImpl.PacketType.ETH)
             );
         }
 
@@ -735,7 +749,7 @@ contract RedPacketTest is Test {
 
         // 打印所有红包状态
         for (uint i = 0; i < packets.length; i++) {
-            RedPacket.PacketView memory packet = packets[i];
+            RedPacketImpl.PacketView memory packet = packets[i];
             console2.log("Packet[", i, "] ID:", uint256(packet.packetId));
             console2.log(
                 "  Remaining:",

@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract RedPacket is Ownable, IERC721Receiver {
+contract RedPacketImpl is
+    Initializable,
+    OwnableUpgradeable,
+    UUPSUpgradeable,
+    IERC721Receiver
+{
     using SafeERC20 for IERC20;
 
     enum PacketType {
@@ -28,7 +35,6 @@ contract RedPacket is Ownable, IERC721Receiver {
         string coverURI; // 红包封面媒体链接
         address token; // 代币地址(ETH 为 address(0))
         PacketType packetType; // 红包类型
-        // mapping(uint256 => uint256) nftIds; // ERC721 代币 ID 列表
         uint256[] nftIds; // ERC721 代币 ID 列表
         mapping(address => bool) claimed; // 记录已领取地址
     }
@@ -83,9 +89,9 @@ contract RedPacket is Ownable, IERC721Receiver {
     event PacketRangeUpdated(uint256 minPercentage, uint256 maxPercentage);
 
     // 相对平均值的最小比例
-    uint256 public minPercentage = 50;
+    uint256 public minPercentage;
     // 相对平均值的最大比例
-    uint256 public maxPercentage = 150;
+    uint256 public maxPercentage;
 
     // 记录所有红包ID
     bytes32[] public allPacketIds;
@@ -96,8 +102,20 @@ contract RedPacket is Ownable, IERC721Receiver {
     // 用户领取的红包ID映射
     mapping(address => bytes32[]) public userClaimedPackets;
 
-    // 构造函数
-    constructor() Ownable(msg.sender) {}
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address initialOwner) public initializer {
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+        minPercentage = 50;
+        maxPercentage = 150;
+    }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 
     // ---------- Setter ----------
 
