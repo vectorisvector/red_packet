@@ -611,19 +611,19 @@ contract RedPacketTest is Test {
         }
         vm.stopPrank();
 
-        // 测试分页获取
+        // 测试分页获取 - 倒序，最新的在前
         (bytes32[] memory result, uint256 total) = redPacket
             .getUserCreatedPackets(alice, 0, 2);
         assertEq(result.length, 2);
         assertEq(total, 3);
-        assertEq(result[0], packetIds[0]);
-        assertEq(result[1], packetIds[1]);
+        assertEq(result[0], packetIds[2], "Should return newest packet first");
+        assertEq(result[1], packetIds[1], "Should return second newest packet");
 
         // 测试第二页
         (result, total) = redPacket.getUserCreatedPackets(alice, 2, 2);
         assertEq(result.length, 1);
         assertEq(total, 3);
-        assertEq(result[0], packetIds[2]);
+        assertEq(result[0], packetIds[0], "Should return oldest packet");
 
         // Bob 和 Carol 各领取一个红包
         vm.prank(bob);

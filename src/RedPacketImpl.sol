@@ -638,20 +638,23 @@ contract RedPacketImpl is
         require(limit <= 10, "Max 10 packets per query");
 
         bytes32[] storage userPackets = userCreatedPackets[user];
-        uint256 end = offset + limit;
-        if (end > userPackets.length) {
-            end = userPackets.length;
-        }
-        if (offset >= end) {
-            return (new bytes32[](0), userPackets.length);
+        uint256 totalPackets = userPackets.length;
+
+        if (offset >= totalPackets) {
+            return (new bytes32[](0), totalPackets);
         }
 
-        bytes32[] memory result = new bytes32[](end - offset);
-        for (uint256 i = offset; i < end; i++) {
-            result[i - offset] = userPackets[i];
+        uint256 start = totalPackets - offset;
+        uint256 end = start;
+        uint256 size = (start > limit) ? limit : start;
+        end = start - size;
+
+        bytes32[] memory result = new bytes32[](size);
+        for (uint256 i = 0; i < size; i++) {
+            result[i] = userPackets[start - 1 - i];
         }
 
-        return (result, userCreatedPackets[user].length);
+        return (result, totalPackets);
     }
 
     // 分页获取用户领取的红包列表
@@ -663,19 +666,23 @@ contract RedPacketImpl is
         require(limit <= 10, "Max 10 packets per query");
 
         bytes32[] storage userPackets = userClaimedPackets[user];
-        uint256 end = offset + limit;
-        if (end > userPackets.length) {
-            end = userPackets.length;
-        }
-        if (offset >= end) {
-            return (new bytes32[](0), userPackets.length);
+        uint256 totalPackets = userPackets.length;
+
+        if (offset >= totalPackets) {
+            return (new bytes32[](0), totalPackets);
         }
 
-        bytes32[] memory result = new bytes32[](end - offset);
-        for (uint256 i = offset; i < end; i++) {
-            result[i - offset] = userPackets[i];
+        uint256 start = totalPackets - offset;
+        uint256 end = start;
+        uint256 size = (start > limit) ? limit : start;
+        end = start - size;
+
+        bytes32[] memory result = new bytes32[](size);
+        for (uint256 i = 0; i < size; i++) {
+            result[i] = userPackets[start - 1 - i];
         }
-        return (result, userClaimedPackets[user].length);
+
+        return (result, totalPackets);
     }
 
     // 批量查询红包信息，限制每次最多10个
