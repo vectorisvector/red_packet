@@ -5,9 +5,9 @@ source .env
 
 # 验证实现合约
 forge verify-contract \
-    --rpc-url "https://explorer.monad-devnet.devnet101.com/api/eth-rpc" \
-    --verifier blockscout \
-    --verifier-url "https://explorer.monad-devnet.devnet101.com/api/" \
+    --rpc-url "https://testnet-rpc.monad.xyz" \
+    --verifier sourcify \
+    --verifier-url "https://sourcify-api-monad.blockvision.org" \
     $IMPLEMENTATION_ADDRESS \
     src/RedPacketImpl.sol:RedPacketImpl 
 
@@ -16,9 +16,9 @@ INIT_DATA=$(cast calldata "initialize(address)" $ADMIN_ADDRESS)
 
 # 验证代理合约
 forge verify-contract \
-    --rpc-url "https://explorer.monad-devnet.devnet101.com/api/eth-rpc" \
-    --verifier blockscout \
-    --verifier-url "https://explorer.monad-devnet.devnet101.com/api/" \
+    --rpc-url "https://testnet-rpc.monad.xyz" \
+    --verifier sourcify \
+    --verifier-url "https://sourcify-api-monad.blockvision.org" \
     $PROXY_ADDRESS \
     src/RedPacketProxy.sol:RedPacketProxy \
     --constructor-args $(cast abi-encode "constructor(address,bytes)" $IMPLEMENTATION_ADDRESS $INIT_DATA) 
